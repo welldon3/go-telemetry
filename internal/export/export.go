@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/welldon3/go-telemetry/tracer"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
@@ -149,7 +150,8 @@ func buildStdoutMetricProvider(res *resource.Resource) (otelmetric.MeterProvider
 }
 
 func buildPrometheusProvider(res *resource.Resource, port int) (otelmetric.MeterProvider, func(context.Context) error, error) {
-	exp, err := prometheusexporter.New()
+	registry := prometheus.NewRegistry()
+	exp, err := prometheusexporter.New(prometheusexporter.WithRegisterer(registry))
 	if err != nil {
 		return nil, noop, fmt.Errorf("export: prometheus exporter: %w", err)
 	}
@@ -164,7 +166,7 @@ func buildPrometheusProvider(res *resource.Resource, port int) (otelmetric.Meter
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
+	mux.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
 	srv := &http.Server{Handler: mux}
 	go func() { _ = srv.Serve(ln) }()
 

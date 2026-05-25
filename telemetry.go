@@ -62,6 +62,9 @@ type Config struct {
 	Exporter  ExporterType
 	Exporters []ExporterType // overrides Exporter when non-empty
 
+	// MetricExporter selects the backend for metrics. Defaults to Exporter if not set.
+	MetricExporter ExporterType
+
 	OTLPEndpoint string // gRPC endpoint, e.g. "localhost:4317"
 	OTLPInsecure bool   // skip TLS; local dev only
 
@@ -138,7 +141,11 @@ func New(ctx context.Context, cfg Config) (*Provider, error) {
 	p.tracer = tracer.New(tp.Tracer(cfg.ServiceName))
 
 	// --- Meter provider ---------------------------------------------------
-	mp, shutdownMetrics, err := export.BuildMeterProvider(ctx, string(cfg.Exporter), cfg.OTLPEndpoint, cfg.OTLPInsecure, cfg.PrometheusPort, res)
+	metricExporter := cfg.MetricExporter
+	if metricExporter == "" {
+		metricExporter = cfg.Exporter
+	}
+	mp, shutdownMetrics, err := export.BuildMeterProvider(ctx, string(metricExporter), cfg.OTLPEndpoint, cfg.OTLPInsecure, cfg.PrometheusPort, res)
 	if err != nil {
 		_ = p.Shutdown(ctx) // clean up tracer registered above
 		return nil, fmt.Errorf("telemetry: meter provider: %w", err)

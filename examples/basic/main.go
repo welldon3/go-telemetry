@@ -35,7 +35,9 @@ func main() {
 		Environment:        "development",
 		Exporter:           telemetry.ExporterOTLP,
 		OTLPEndpoint:       "localhost:4317",
-		OTLPInsecure:       true, // local Tempo, no TLS needed
+		OTLPInsecure:       true,                      // local Tempo, no TLS needed
+		MetricExporter:     telemetry.ExporterPrometheus, // Prometheus scrapes :9091/metrics
+		PrometheusPort:     9091,                      // 9090 is taken by the Prometheus container
 		LogExporter: logger.NewLokiExporter(logger.LokiConfig{
 			Endpoint: "http://localhost:3100",
 			Labels: map[string]string{

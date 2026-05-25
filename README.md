@@ -41,6 +41,40 @@ tracer := tel.Tracer()
 meter  := tel.Meter()
 ```
 
+## Local observability stack
+
+The repo ships a Docker Compose stack that wires Grafana, Loki, Tempo, and Prometheus so you can see traces, logs, and metrics live in under a minute.
+
+**Requirements:** Docker with Compose v2.
+
+```sh
+# 1. Start the stack (Grafana :3000, Tempo :4317, Loki :3100, Prometheus :9090)
+docker compose up -d
+
+# 2. Run the instrumented example server
+make example          # or: go run ./examples/basic
+
+# 3. Send some traffic
+curl "http://localhost:8080/orders?id=42"
+curl "http://localhost:8080/orders?id=99"
+curl "http://localhost:8080/orders"          # triggers a validation error
+```
+
+Open **http://localhost:3000** (no login required).
+
+| Signal | Where to look |
+|---|---|
+| Traces | Explore → Tempo → Search, or paste a `traceID` |
+| Logs | Explore → Loki → `{service_name="example-service"}` |
+| Metrics | Explore → Prometheus → `orders_processed_total` |
+
+**Log → Trace correlation:** In the Loki log line, click the `trace_id` value — Grafana jumps straight to the matching trace in Tempo.
+
+```sh
+# Stop the stack when you're done
+docker compose down
+```
+
 ## Logging
 
 ```go
